@@ -5,15 +5,19 @@ from .models import LogEvent
 
 
 IP_PATTERN = r"from\s+(\d{1,3}(?:\.\d{1,3}){3})"
-TIMESTAMP_PATTERN = r"^(?P<month>[A-Z][a-z]{2})\s+(?P<day>\d{1,2})\s+(?P<time>\d{2}:\d{2}:\d{2})"
+TIMESTAMP_PATTERN = (
+    r"^(?P<month>[A-Z][a-z]{2})\s+"
+    r"(?P<day>\d{1,2})\s+"
+    r"(?P<time>\d{2}:\d{2}:\d{2})"
+)
 
 
 def parse_timestamp(line: str) -> datetime:
     """
-    Extract the syslog timestamp from a log line.
+    Extract the syslog timestamp from an auth.log line.
 
-    Syslog auth.log entries do not contain a year, so the current UTC
-    year is used when constructing the datetime.
+    Syslog entries do not contain a year, so the current UTC year
+    is used when constructing the datetime.
     """
 
     match = re.search(TIMESTAMP_PATTERN, line)
@@ -21,21 +25,19 @@ def parse_timestamp(line: str) -> datetime:
     if not match:
         raise ValueError(f"Unable to parse log timestamp: {line}")
 
+    year = datetime.now(timezone.utc).year
+
     timestamp_text = (
+        f"{year} "
         f"{match.group('month')} "
         f"{match.group('day')} "
         f"{match.group('time')}"
     )
 
-    parsed = datetime.strptime(
+    return datetime.strptime(
         timestamp_text,
-        "%b %d %H:%M:%S",
-    )
-
-    return parsed.replace(
-        year=datetime.now(timezone.utc).year,
-        tzinfo=timezone.utc,
-    )
+        "%Y %b %d %H:%M:%S",
+    ).replace(tzinfo=timezone.utc)
 
 
 def parse_log_line(line: str) -> LogEvent | None:

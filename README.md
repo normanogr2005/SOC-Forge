@@ -1,8 +1,10 @@
- # 🛡️ SOC-Forge
+# 🛡️ SOC-Forge
 
 ### NORMANTOYS // SECURITY OPERATIONS
 
 > BUILD. BREAK. UNDERSTAND.
+
+**Current release: v0.2.0**
 
 SOC-Forge is a local Security Operations Center built to analyze security logs, detect suspicious authentication activity, correlate events, and investigate incidents.
 
@@ -127,6 +129,9 @@ The project includes automated tests for:
 - Normal authentication handling
 - Brute-force correlation
 - Threshold validation
+- Authentication log timestamp parsing
+- Successful authentication parsing
+- Blank log-line handling
 
 Run:
 
@@ -145,7 +150,7 @@ cd SOC-Forge
 python3 -m venv .venv
 source .venv/bin/activate
 
-pip install -e .
+pip install -e ".[dev]"
 ```
 
 ---
@@ -190,6 +195,7 @@ The goal is not only to use security tools, but to understand how the systems be
 ## 🗺️ Roadmap
 
 - [x] Authentication log parser
+- [x] Real log timestamp parsing
 - [x] Detection engine
 - [x] Failed login detection
 - [x] Brute-force correlation

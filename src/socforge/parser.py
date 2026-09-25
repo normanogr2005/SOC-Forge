@@ -5,11 +5,42 @@ from .models import LogEvent
 
 
 IP_PATTERN = r"from\s+(\d{1,3}(?:\.\d{1,3}){3})"
+TIMESTAMP_PATTERN = r"^(?P<month>[A-Z][a-z]{2})\s+(?P<day>\d{1,2})\s+(?P<time>\d{2}:\d{2}:\d{2})"
+
+
+def parse_timestamp(line: str) -> datetime:
+    """
+    Extract the syslog timestamp from a log line.
+
+    Syslog auth.log entries do not contain a year, so the current UTC
+    year is used when constructing the datetime.
+    """
+
+    match = re.search(TIMESTAMP_PATTERN, line)
+
+    if not match:
+        raise ValueError(f"Unable to parse log timestamp: {line}")
+
+    timestamp_text = (
+        f"{match.group('month')} "
+        f"{match.group('day')} "
+        f"{match.group('time')}"
+    )
+
+    parsed = datetime.strptime(
+        timestamp_text,
+        "%b %d %H:%M:%S",
+    )
+
+    return parsed.replace(
+        year=datetime.now(timezone.utc).year,
+        tzinfo=timezone.utc,
+    )
 
 
 def parse_log_line(line: str) -> LogEvent | None:
     """
-    Convierte una línea de auth.log en un LogEvent.
+    Convert one auth.log line into a LogEvent.
     """
 
     line = line.strip()
@@ -30,7 +61,7 @@ def parse_log_line(line: str) -> LogEvent | None:
         event_type = "unknown"
 
     return LogEvent(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=parse_timestamp(line),
         source="auth.log",
         event_type=event_type,
         message=line,
@@ -40,7 +71,7 @@ def parse_log_line(line: str) -> LogEvent | None:
 
 def parse_log_file(path: str) -> list[LogEvent]:
     """
-    Lee un archivo completo y devuelve los eventos reconocidos.
+    Read a complete log file and return its parsed events.
     """
 
     events: list[LogEvent] = []

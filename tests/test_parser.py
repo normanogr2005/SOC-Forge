@@ -16,6 +16,7 @@ def test_parse_failed_authentication_line():
     assert event.event_type == "authentication_failed"
     assert event.source_ip == "192.168.1.50"
     assert event.message == line
+    assert event.event_id
 
     current_year = datetime.now(timezone.utc).year
 
@@ -41,6 +42,33 @@ def test_parse_successful_authentication_line():
     assert event is not None
     assert event.event_type == "authentication_success"
     assert event.source_ip == "192.168.1.20"
+
+
+def test_invalid_source_ip_is_not_trusted():
+    line = (
+        "Sep 25 02:10:05 sansan sshd[1203]: "
+        "Failed password for user admin from 999.999.999.999"
+    )
+
+    event = parse_log_line(line)
+
+    assert event is not None
+    assert event.event_type == "authentication_failed"
+    assert event.source_ip is None
+
+
+def test_identical_log_lines_get_distinct_event_ids():
+    line = (
+        "Sep 25 02:10:05 sansan sshd[1204]: "
+        "Failed password for user admin from 192.168.1.50"
+    )
+
+    first = parse_log_line(line)
+    second = parse_log_line(line)
+
+    assert first is not None
+    assert second is not None
+    assert first.event_id != second.event_id
 
 
 def test_ignore_blank_log_line():

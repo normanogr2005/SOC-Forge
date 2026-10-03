@@ -13,7 +13,10 @@ TIMESTAMP_PATTERN = (
 )
 
 
-def parse_timestamp(line: str) -> datetime:
+def parse_timestamp(
+    line: str,
+    now: datetime | None = None,
+) -> datetime:
     """
     Extract the syslog timestamp from an auth.log line.
 
@@ -26,7 +29,7 @@ def parse_timestamp(line: str) -> datetime:
     if not match:
         raise ValueError(f"Unable to parse log timestamp: {line}")
 
-    now = datetime.now(timezone.utc)
+    now = now or datetime.now(timezone.utc)
     year = now.year
 
     timestamp_text = (

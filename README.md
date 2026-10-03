@@ -6,7 +6,7 @@
 
 **Current release: v0.2.0**
 
-SOC-Forge is a local Security Operations Center built to analyze security logs, detect suspicious authentication activity, correlate events, and investigate incidents.
+SOC-Forge is a local Security Operations Center built to analyze security logs, detect suspicious authentication activity, correlate events, investigate incidents, and persist alerts with explicit event identity.
 
 ---
 
@@ -106,6 +106,8 @@ SOC-Forge provides:
                 └───────────┘
 ```
 
+Each parsed event receives its own `event_id`. Alert persistence uses that event identity instead of deduplicating by rule, source IP, and message content.
+
 ---
 
 ## 🚀 Tech Stack
@@ -130,6 +132,10 @@ The project includes automated tests for:
 - Brute-force correlation
 - Threshold validation
 - Authentication log timestamp parsing
+- Previous-year syslog rollover handling
+- Valid and invalid source IP parsing
+- Per-event identity generation
+- SQLite alert identity and legacy database migration
 - Successful authentication parsing
 - Blank log-line handling
 
@@ -152,8 +158,6 @@ source .venv/bin/activate
 
 pip install -e ".[dev]"
 ```
-
----
 
 ## ▶️ Usage
 
@@ -200,6 +204,7 @@ The goal is not only to use security tools, but to understand how the systems be
 - [x] Failed login detection
 - [x] Brute-force correlation
 - [x] SQLite persistence
+- [x] Event identity for parsed events
 - [x] FastAPI dashboard
 - [x] Incident investigation
 - [x] Detection activity visualization

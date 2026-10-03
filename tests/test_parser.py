@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from socforge.parser import parse_log_line
+from socforge.parser import parse_log_line, parse_timestamp
 
 
 def test_parse_failed_authentication_line():
@@ -69,6 +69,23 @@ def test_identical_log_lines_get_distinct_event_ids():
     assert first is not None
     assert second is not None
     assert first.event_id != second.event_id
+
+
+def test_previous_year_syslog_rollover():
+    line = "Dec 31 23:59:59 sansan sshd[1205]: Failed password for user admin"
+    reference = datetime(2027, 1, 1, 0, 30, tzinfo=timezone.utc)
+
+    timestamp = parse_timestamp(line, reference)
+
+    assert timestamp == datetime(
+        2026,
+        12,
+        31,
+        23,
+        59,
+        59,
+        tzinfo=timezone.utc,
+    )
 
 
 def test_ignore_blank_log_line():

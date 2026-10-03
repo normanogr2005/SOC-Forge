@@ -1,10 +1,11 @@
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from ipaddress import ip_address
 
 from .models import LogEvent
 
 
-IP_PATTERN = r"from\s+(\d{1,3}(?:\.\d{1,3}){3})"
+IP_PATTERN = r"from\s+([0-9A-Fa-f:.]+)"
 TIMESTAMP_PATTERN = (
     r"^(?P<month>[A-Z][a-z]{2})\s+"
     r"(?P<day>\d{1,2})\s+"
@@ -16,8 +17,8 @@ def parse_timestamp(line: str) -> datetime:
     """
     Extract the syslog timestamp from an auth.log line.
 
-    Syslog entries do not contain a year, so the current UTC year
-    is used when constructing the datetime.
+    Syslog entries do not contain a year, so the current UTC year is used
+    with a rollover guard for logs from the previous December.
     """
 
     match = re.search(TIMESTAMP_PATTERN, line)
@@ -25,7 +26,8 @@ def parse_timestamp(line: str) -> datetime:
     if not match:
         raise ValueError(f"Unable to parse log timestamp: {line}")
 
-    year = datetime.now(timezone.utc).year
+    now = datetime.now(timezone.utc)
+    year = now.year
 
     timestamp_text = (
         f"{year} "
@@ -34,10 +36,18 @@ def parse_timestamp(line: str) -> datetime:
         f"{match.group('time')}"
     )
 
-    return datetime.strptime(
+    timestamp = datetime.strptime(
         timestamp_text,
         "%Y %b %d %H:%M:%S",
     ).replace(tzinfo=timezone.utc)
+
+    # A January run can legitimately be processing late-December syslog
+    # entries from the previous year. Treat timestamps more than one day in
+    # the future as belonging to the previous year.
+    if timestamp - now > timedelta(days=1):
+        timestamp = timestamp.replace(year=year - 1)
+
+    return timestamp
 
 
 def parse_log_line(line: str) -> LogEvent | None:
@@ -50,8 +60,14 @@ def parse_log_line(line: str) -> LogEvent | None:
     if not line:
         return None
 
+    source_ip = None
     source_ip_match = re.search(IP_PATTERN, line)
-    source_ip = source_ip_match.group(1) if source_ip_match else None
+    if source_ip_match:
+        candidate = source_ip_match.group(1)
+        try:
+            source_ip = str(ip_address(candidate))
+        except ValueError:
+            source_ip = None
 
     if "Failed password" in line:
         event_type = "authentication_failed"
